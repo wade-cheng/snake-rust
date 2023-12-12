@@ -1,4 +1,4 @@
-use std::fs;
+use std::sync::{Arc, Mutex};
 use device_query::{DeviceEvents, DeviceState, Keycode};
 use std::{thread, time};
 use std::collections::VecDeque;
@@ -18,29 +18,31 @@ fn print_big_l() {
     println!("LLLLLLLLL");
 }
 
+#[derive(Copy, Clone)]
+enum Movement {
+    Left,
+    Up,
+    Right,
+    Down,
+    None,
+}
+
 fn main() {
-    /* refactor to a Enum later
-       note similarity to numpad
-       -1: no movement:
-       4: Left
-       8: Up
-       6: Right
-       2: Down
-    */
-    // let mut queued_movement: i32 = -1;
+    let queued_movement: Arc<Mutex<Movement>> = Arc::new(Mutex::new(Movement::None));
 
     // width: 30; height: 10
     let mut map = String::from("..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n");
 
-    fs::write("test.txt", "").expect("Unable to write file");
     let device_state = DeviceState::new();
-    let _guard = device_state.on_key_down(|key| {
-        // queued_movement = 0; // cannot assign to `queued_movement`, as it is a captured variable in a `Fn` closure"
+    // when we recieve a key_down event, call the callback closure function with argument `key``
+    let q = Arc::clone(&queued_movement);
+    let _guard = device_state.on_key_down(move |key| {
+        let mut q = q.lock().unwrap();
         match key {
-            &Keycode::Left => fs::write("test.txt", "4").expect("Unable to write file"), //println!("Key Left pressed, i think"), // queued_movement = 4;
-            &Keycode::Right => fs::write("test.txt", "6").expect("Unable to write file"), // LMFAO workaround of the century
-            &Keycode::Up => fs::write("test.txt", "8").expect("Unable to write file"), 
-            &Keycode::Down => fs::write("test.txt", "2").expect("Unable to write file"), 
+            &Keycode::Left => *q = Movement::Left,
+            &Keycode::Right => *q = Movement::Right,
+            &Keycode::Up => *q = Movement::Up,
+            &Keycode::Down => *q = Movement::Down,
             _ => (),
         }
     });
@@ -53,20 +55,22 @@ fn main() {
     apple_locs.push((9,7));
     apple_locs.push((9,9));
 
+
     let mut i: usize = 0;
     let mut j: usize = 0;
+    let q = Arc::clone(&queued_movement);
     'game: loop {
         for (i,j) in snake_locs.iter() {
             map.replace_range((j + i*31)..(j + i*31)+1,".");
         }
         
-        let s = fs::read_to_string("test.txt").expect("Unable to read file");
-        match &s[..] {
-            "4" => j = (j + 29) % 30,
-            "6" => j = (j + 1) % 30,
-            "8" => i = (i + 9) % 10,
-            "2" => i = (i + 1) % 10, 
-            _ => (),
+        let mvt: Movement = *q.lock().unwrap();
+        match mvt {
+            Movement::Left => j = (j + 29) % 30,
+            Movement::Right => j = (j + 1) % 30,
+            Movement::Up => i = (i + 9) % 10,
+            Movement::Down => i = (i + 1) % 10, 
+            Movement::None => (),
         }
         
         snake_locs.push_back((i,j));
@@ -84,11 +88,8 @@ fn main() {
         let mut snake_locs_iter = snake_locs.iter().peekable();
         let snake_head_pos = snake_locs.back().unwrap();
         let mut pos = snake_locs_iter.next().unwrap();
-        loop {
-            if snake_locs_iter.peek().is_none() {
-                // our pos "pointer" points to the head. we can end self-collision detection
-                break;
-            }
+        while snake_locs_iter.peek().is_some() {
+            // until pos "pointer" points to the head, we continue self-collision detection
 
             if pos == snake_head_pos {
                 println!("\n\nyou lost.");
