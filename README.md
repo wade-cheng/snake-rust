@@ -11,6 +11,15 @@ The docs <sup>[[1](https://doc.rust-lang.org/book/ch01-01-installation.html)]</s
 
 ### 12 Dec 2023
 
+Version 0.3.0. Minor changes: movement of snake is now in O(1) instead of of O(n), where n is the length of the snake. 
+
+Major changes:
+Apples now spawn in randomly with time complexity O(m(s+a)) 
+where m, s, and a is the area of the map, the length of the snake and the number of apples, respectively.
+With some tomfoolery, I might be able to get it down to still O(m).
+
+### 12 Dec 2023
+
 Version 0.2.0. Queued movements are now much more sane. I had to figure out how to work Arcs and Mutexes to make them work.
 You really do learn so much by working on projects, who would've known? There's plenty more I want to implement, but I'm already so happy with how
 this is turning out and how much I'm learning. I want to add a menu screen, a scoreboard that persists over game sessions, colors, some way to distinguish
