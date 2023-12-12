@@ -16,7 +16,7 @@ Version 0.3.0. Minor changes: movement of snake is now in O(1) instead of of O(n
 Major changes:
 Apples now spawn in randomly with time complexity O(m(s+a)) 
 where m, s, and a is the area of the map, the length of the snake and the number of apples, respectively.
-With some tomfoolery, I might be able to get it down to still O(m).
+With some tomfoolery, I might be able to get it down to just O(m)? We'll see.
 
 ### 12 Dec 2023
 
