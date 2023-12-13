@@ -5,9 +5,9 @@ use std::collections::VecDeque;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 
-// const MAP_ROWS: i32 = 20;
-// const MAP_COLS: i32 = 20;
-const TICK_RATE_MS: u64 = 250;
+const MAP_ROWS: usize = 6;
+const MAP_COLS: usize = 6;
+const TICK_RATE_MS: u64 = 500;
 
 fn print_big_l() {
     println!("LLL");
@@ -31,8 +31,9 @@ enum Movement {
 fn main() {
     let queued_movement: Arc<Mutex<Movement>> = Arc::new(Mutex::new(Movement::None));
 
-    // width: 30; height: 10
-    let mut map = String::from("..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n..............................\n");
+    let mut map = ".".repeat(MAP_COLS);
+    map.push('\n');
+    map = map.repeat(MAP_ROWS);
 
     let device_state = DeviceState::new();
     // when we recieve a key_down event, call the callback closure function with argument `key``
@@ -50,12 +51,10 @@ fn main() {
 
     let mut snake_locs = VecDeque::from([(0,0)]);
     let mut apple_locs = Vec::new();
-    apple_locs.push((5,5));
-    apple_locs.push((7,5));
-    apple_locs.push((9,5));
-    apple_locs.push((9,7));
-    apple_locs.push((9,9));
-    let mut apple_open_locs_1d = [0; 10 * 30]; // apple open locations, saved as a single integer. i,j is known if width and height of map is known
+    apple_locs.push((1,1));
+    apple_locs.push((0,1));
+    apple_locs.push((1,0));
+    let mut apple_open_locs_1d = [0; MAP_ROWS * MAP_COLS]; // apple open locations, saved as a single integer. i,j is known if width and height of map is known
 
     let mut rng = thread_rng();
 
@@ -66,10 +65,10 @@ fn main() {
         
         let mvt: Movement = *q.lock().unwrap();
         match mvt {
-            Movement::Left => j = (j + 29) % 30,
-            Movement::Right => j = (j + 1) % 30,
-            Movement::Up => i = (i + 9) % 10,
-            Movement::Down => i = (i + 1) % 10, 
+            Movement::Left => j = (j + (MAP_COLS - 1)) % MAP_COLS,
+            Movement::Right => j = (j + 1) % MAP_COLS,
+            Movement::Up => i = (i + (MAP_ROWS - 1)) % MAP_ROWS,
+            Movement::Down => i = (i + 1) % MAP_ROWS, 
             Movement::None => (),
         }
         
@@ -79,36 +78,40 @@ fn main() {
         match apple_locs.iter().position(|x| x == snake_head_pos) {
             Some(pos) => { 
                 // if an apple's position is where we just moved to, remove that apple and "grow" by not moving along
-                // spawn a new apple
                 apple_locs.remove(pos); 
-
-                // temp below
-
+                
+                // spawn a new apple
                 let mut curr_loc_idx = 0; // the index into apple_open_locs_1d
-                for loc_1d in 0..10*30 {
-                    let loc_2d: (usize, usize) = (loc_1d / 30, loc_1d % 30);
-                    println!("{:?}", loc_2d);
+                for loc_1d in 0..MAP_ROWS*MAP_COLS {
+                    let loc_2d: (usize, usize) = (loc_1d / MAP_COLS, loc_1d % MAP_COLS);
                     if !snake_locs.contains(&loc_2d) && !apple_locs.contains(&loc_2d) {
                         apple_open_locs_1d[curr_loc_idx] = loc_1d;
                         curr_loc_idx += 1;
                     }
                 } // assert(curr_loc_idx is the number of open spaces.)
 
+                if curr_loc_idx == 0 {
+                    // wincon: no open spaces on board
+                    // this means you can win if there are valid movements (eg apples) left
+                    println!("\n\nyou won :3");
+                    break 'game;
+                }
+
                 // println!("{:?}", &apple_open_locs_1d[0..curr_loc_idx].choose(&mut rng));
                 let new_apple_loc_1d = (&apple_open_locs_1d[0..curr_loc_idx]).choose(&mut rng).unwrap();
-                let new_apple_i = new_apple_loc_1d / 30;
-                let new_apple_j = new_apple_loc_1d % 30;
+                let new_apple_i = new_apple_loc_1d / MAP_COLS;
+                let new_apple_j = new_apple_loc_1d % MAP_COLS;
                 apple_locs.push((new_apple_i, new_apple_j));
             }, 
             None => { 
                 // if there is no such position, we didn't eat an apple; the snake just moves along
                 let (tail_i, tail_j) = snake_locs.pop_front().unwrap(); 
-                map.replace_range((tail_j + tail_i*31)..(tail_j + tail_i*31)+1,".");
+                map.replace_range((tail_j + tail_i*(MAP_COLS + 1))..(tail_j + tail_i*(MAP_COLS + 1))+1,".");
             },  
         }
 
         for (i,j) in apple_locs.iter() {
-            map.replace_range((j + i*31)..(j + i*31)+1,"o");
+            map.replace_range((j + i*(MAP_COLS + 1))..(j + i*(MAP_COLS + 1))+1,"o");
         }
 
         let mut snake_locs_iter = snake_locs.iter().peekable();
@@ -127,7 +130,7 @@ fn main() {
         }
 
         for (i,j) in snake_locs.iter() {
-            map.replace_range((j + i*31)..(j + i*31)+1,"X");
+            map.replace_range((j + i*(MAP_COLS + 1))..(j + i*(MAP_COLS + 1))+1,"X");
         }
         print!("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n{}", map);
 

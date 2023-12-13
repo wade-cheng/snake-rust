@@ -11,6 +11,10 @@ The docs <sup>[[1](https://doc.rust-lang.org/book/ch01-01-installation.html)]</s
 
 ### 12 Dec 2023
 
+Version 0.3.1. Minor changes: unhardcoded some values. The constants MAP_ROWS and MAP_COLS can now control the size of the map.
+
+### 12 Dec 2023
+
 Version 0.3.0. Minor changes: movement of snake is now in O(1) instead of of O(n), where n is the length of the snake. 
 
 Major changes:
